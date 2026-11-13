@@ -1,15 +1,17 @@
 "use client";
 
+import { HOOD_CONFIG } from "@/hood.config";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Menu, X } from "lucide-react";
+import { CaButton } from "./Networks";
 
 const SECTIONS = [
   { href: "/#pipeline", label: "How it works" },
   { href: "/#access", label: "Access" },
-  { href: "/#token", label: "$HOOD" },
+  { href: "/#token", label: `$${HOOD_CONFIG.project.ticker}` },
   { href: "/#monitor", label: "Monitor" },
 ];
 const PAGES = [{ href: "/terminal", label: "Terminal" }];
@@ -35,6 +37,7 @@ export function Header() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          <CaButton />
           <ConnectButton chainStatus="icon" showBalance={false} accountStatus={{ smallScreen: "avatar", largeScreen: "full" }} />
           <button className="border border-curb p-2 text-chalk hover:border-spray hover:text-spray lg:hidden" aria-label="Menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
             {open ? <X size={18} /> : <Menu size={18} />}

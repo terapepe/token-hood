@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const a = await checkAccess(body);
   return NextResponse.json(
-    { ok: a.ok, error: a.ok ? undefined : a.error, balance: a.balance ?? null, min: HOOD_MIN_HOLD, aiReady: isAiConfigured },
+    { ok: a.ok, error: a.ok ? undefined : a.error, balance: a.balance ?? null, breakdown: a.breakdown ?? [], min: HOOD_MIN_HOLD, aiReady: isAiConfigured },
     { status: a.ok ? 200 : a.status },
   );
 }

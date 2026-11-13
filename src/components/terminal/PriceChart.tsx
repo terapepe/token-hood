@@ -1,5 +1,6 @@
 "use client";
 
+import { HOOD_CONFIG } from "@/hood.config";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Candle, Feed, Timeframe } from "@/lib/hood-data";
 import { SourceTag } from "./live";
@@ -12,7 +13,7 @@ const VOL_H = 60;
 const PAD = { l: 8, r: 78, t: 16, b: 26 };
 
 /** Interactive OHLCV chart (GeckoTerminal). Candles or line, crosshair readout, volume bars. */
-export function PriceChart({ now }: { now: number }) {
+export function PriceChart({ now, net }: { now: number; net: string }) {
   const [tf, setTf] = useState<Timeframe>("1h");
   const [mode, setMode] = useState<"candle" | "line">("candle");
   const [feed, setFeed] = useState<ChartFeed | null>(null);
@@ -31,7 +32,7 @@ export function PriceChart({ now }: { now: number }) {
   useEffect(() => {
     let stop = false;
     const load = () =>
-      fetch(`/api/hood/chart?tf=${tf}`)
+      fetch(`/api/hood/chart?tf=${tf}&net=${net}`)
         .then((r) => r.json())
         .then((j: ChartFeed) => !stop && setFeed(j))
         .catch(() => !stop && setFeed({ ok: false, data: null, source: "geckoterminal", error: "unreachable", at: Date.now() }));
@@ -42,7 +43,7 @@ export function PriceChart({ now }: { now: number }) {
       stop = true;
       clearInterval(id);
     };
-  }, [tf]);
+  }, [tf, net]);
 
   const candles = feed?.data?.candles ?? [];
   const geo = useMemo(() => {
@@ -75,7 +76,7 @@ export function PriceChart({ now }: { now: number }) {
   return (
     <div className="panel">
       <div className="panel-head flex-wrap">
-        <span><span className="text-spray">▍</span>PRICE FEED · $HOOD/USD</span>
+        <span><span className="text-spray">▍</span>PRICE FEED · ${HOOD_CONFIG.project.ticker}/USD</span>
         <div className="flex items-center gap-3">
           {feed && <SourceTag feed={feed} now={now} />}
         </div>
@@ -114,12 +115,12 @@ export function PriceChart({ now }: { now: number }) {
         {feed && !geo && (
           <div className="flex flex-col items-center justify-center gap-1 text-center text-xs text-smoke" style={{ height: H }}>
             <span className="text-caution">[ NO CHART FEED ]</span>
-            <span>{feed.ok ? "No trades recorded in this window." : `GeckoTerminal has no OHLCV for $HOOD yet (${feed.error}).`}</span>
+            <span>{feed.ok ? "No trades recorded in this window." : `GeckoTerminal has no OHLCV for $${HOOD_CONFIG.project.ticker} yet (${feed.error}).`}</span>
             <span>The chart stays empty instead of showing simulated prices.</span>
           </div>
         )}
         {geo && (
-          <svg viewBox={`0 0 ${w} ${H}`} width={w} height={H} className="block w-full touch-none select-none" onPointerMove={onMove} onPointerLeave={() => setHover(null)} role="img" aria-label={`$HOOD price chart, ${tf} candles`}>
+          <svg viewBox={`0 0 ${w} ${H}`} width={w} height={H} className="block w-full touch-none select-none" onPointerMove={onMove} onPointerLeave={() => setHover(null)} role="img" aria-label={`$${HOOD_CONFIG.project.ticker} price chart, ${tf} candles`}>
             <defs>
               <linearGradient id="area" x1="0" x2="0" y1="0" y2="1">
                 <stop offset="0" stopColor="#39FF75" stopOpacity=".28" />

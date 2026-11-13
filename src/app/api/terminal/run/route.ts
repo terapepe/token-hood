@@ -4,7 +4,7 @@ import { scanWebsite } from "@/lib/scan";
 
 export const maxDuration = 300;
 
-type Body = { address?: string; signature?: string; ts?: number; url?: string; brief?: string; previousHtml?: string };
+type Body = { address?: string; signature?: string; ts?: number; kind?: "evm" | "solana"; url?: string; brief?: string; previousHtml?: string };
 
 /**
  * HOOD pipeline, streamed as NDJSON events:
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       const send = (o: object) => ctrl.enqueue(enc.encode(JSON.stringify(o) + "\n"));
       const log = (text: string) => send({ type: "log", text });
       try {
-        log(`ACCESS OK · ${access.address.slice(0, 6)}…${access.address.slice(-4)} · ${Math.floor(access.balance).toLocaleString()} $HOOD`);
+        log(`ACCESS OK · ${access.address.slice(0, 6)}…${access.address.slice(-4)} · ${Math.floor(access.balance).toLocaleString()} HOOD`);
         let raw = "";
         if (body.previousHtml) {
           log("REVISION MODE · applying request to current build");

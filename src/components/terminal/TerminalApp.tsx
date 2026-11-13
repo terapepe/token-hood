@@ -9,14 +9,25 @@ import {
 } from "lucide-react";
 import type { Analysis } from "@/lib/ai";
 import type { Dossier } from "@/lib/scan";
-import { ACCESS_TTL_MS, accessMessage } from "@/lib/hood";
+import bs58 from "bs58";
+import { ACCESS_TTL_MS, accessMessage, type WalletKind } from "@/lib/hood";
+import { hasType, listNets } from "@/lib/networks";
+import { HOOD_CONFIG } from "@/hood.config";
 
 /* ---------------- types & storage ---------------- */
 
-type Sig = { address: string; signature: string; ts: number };
+type Sig = { address: string; signature: string; ts: number; kind: WalletKind };
 type Line = { t: number; text: string; level: "in" | "ok" | "warn" | "err" | "sys" };
 type Version = { id: number; html: string; label: string; at: number };
-type Gate = { ok: boolean; balance: number | null; min: number; error?: string; aiReady?: boolean };
+type Gate = { ok: boolean; balance: number | null; min: number; error?: string; aiReady?: boolean; breakdown?: { net: string; short: string; balance: number | null; error?: string }[] };
+
+/** Injected Solana wallet (Phantom, Solflare, Backpack… expose the same connect/signMessage API). */
+type SolProvider = { connect: () => Promise<{ publicKey?: { toString(): string } } | void>; disconnect?: () => Promise<void>; publicKey?: { toString(): string } | null; signMessage: (m: Uint8Array, enc?: string) => Promise<{ signature: Uint8Array } | Uint8Array> };
+const solProvider = (): SolProvider | null => {
+  const w = window as unknown as Record<string, any>;
+  return w.phantom?.solana ?? w.solflare ?? w.backpack ?? w.solana ?? null;
+};
+const T = `$${HOOD_CONFIG.project.ticker}`;
 type Target = Pick<Dossier, "title" | "finalUrl" | "tech" | "colors" | "checks">;
 type Project = { id: string; url: string; brief: string; createdAt: number; target: Target | null; analysis: Analysis | null; versions: Version[] };
 type View = "analysis" | "code" | "preview" | "split";
@@ -68,7 +79,12 @@ const slimTarget = (d: Dossier): Target => ({ title: d.title, finalUrl: d.finalU
 /* ---------------- component ---------------- */
 
 export function TerminalApp({ minHold }: { minHold: number }) {
-  const { address, isConnected } = useAccount();
+  const { address: evmAddress } = useAccount();
+  const types = { evm: hasType("evm"), solana: hasType("solana") };
+  const [kind, setKind] = useState<WalletKind>(types.evm ? "evm" : "solana");
+  const [solAddress, setSolAddress] = useState<string | null>(null);
+  const address = kind === "evm" ? evmAddress?.toLowerCase() ?? null : solAddress;
+  const isConnected = Boolean(address);
   const { signMessageAsync } = useSignMessage();
   const [sig, setSig] = useState<Sig | null>(null);
   const [gate, setGate] = useState<Gate | null>(null);
@@ -126,7 +142,7 @@ export function TerminalApp({ minHold }: { minHold: number }) {
       const r = await fetch("/api/terminal/access", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(s) });
       const j: Gate = await r.json();
       setGate(j);
-      if (j.ok) log(`ACCESS GRANTED · holding ${Math.floor(j.balance ?? 0).toLocaleString()} $HOOD`);
+      if (j.ok) log(`ACCESS GRANTED · holding ${Math.floor(j.balance ?? 0).toLocaleString()} ${T}`);
       else log(`ACCESS DENIED · ${j.error}`, "err");
       if (j.aiReady === false) log("AI engine offline: server has no ANTHROPIC_API_KEY.", "warn");
     } catch {
@@ -141,21 +157,40 @@ export function TerminalApp({ minHold }: { minHold: number }) {
     if (!address) return setSig(null);
     try {
       const s: Sig = JSON.parse(sessionStorage.getItem("hood-sig") ?? "null");
-      if (s && s.address === address.toLowerCase() && now() - s.ts < ACCESS_TTL_MS - 60_000) {
+      if (s && s.kind === kind && s.address === address && now() - s.ts < ACCESS_TTL_MS - 60_000) {
         setSig(s);
         verify(s);
         return;
       }
     } catch {}
     setSig(null);
-  }, [address, verify]);
+  }, [address, kind, verify]);
+
+  async function connectSolana() {
+    const p = solProvider();
+    if (!p) return log("No Solana wallet found. Install Phantom, Solflare or Backpack.", "warn");
+    try {
+      const r = await p.connect();
+      const pk = (r && "publicKey" in r ? r.publicKey : null) ?? p.publicKey;
+      if (pk) setSolAddress(pk.toString());
+    } catch {
+      log("Solana wallet connection rejected.", "warn");
+    }
+  }
 
   async function signIn() {
     if (!address) return;
     const ts = now();
     try {
-      const signature = await signMessageAsync({ message: accessMessage(address, ts) });
-      const s = { address: address.toLowerCase(), signature, ts };
+      let signature: string;
+      if (kind === "evm") signature = await signMessageAsync({ message: accessMessage(address, ts) });
+      else {
+        const p = solProvider();
+        if (!p) throw new Error("no wallet");
+        const r = await p.signMessage(new TextEncoder().encode(accessMessage(address, ts)), "utf8");
+        signature = bs58.encode(r instanceof Uint8Array ? r : r.signature);
+      }
+      const s: Sig = { address, signature, ts, kind };
       sessionStorage.setItem("hood-sig", JSON.stringify(s));
       setSig(s);
       await verify(s);
@@ -166,9 +201,9 @@ export function TerminalApp({ minHold }: { minHold: number }) {
 
   const unlocked = Boolean(sig && gate?.ok && gate.aiReady !== false);
   const lockReason = !isConnected
-    ? `Connect a wallet holding ≥ ${minHold.toLocaleString()} $HOOD.`
-    : !sig ? "Verify you hold $HOOD (free signature, no transaction)."
-    : checking ? "Checking balance on Robinhood Chain…"
+    ? `Connect a wallet holding ≥ ${minHold.toLocaleString()} ${T}.`
+    : !sig ? `Verify you hold ${T} (free signature, no transaction).`
+    : checking ? "Checking balance on-chain…"
     : gate && !gate.ok ? gate.error
     : gate?.aiReady === false ? "AI engine offline (server key missing)." : null;
 
@@ -339,15 +374,36 @@ export function TerminalApp({ minHold }: { minHold: number }) {
               <span className="tracking-[0.2em] text-smoke">ACCESS</span>
               <span className={unlocked ? "text-spray" : "text-caution"}>{unlocked ? "GRANTED" : "LOCKED"}</span>
             </span>
-            <span className="text-smoke">min {minHold.toLocaleString()} $HOOD</span>
+            <span className="text-smoke">min {minHold.toLocaleString()} {T}</span>
           </div>
+          {types.evm && types.solana && (
+            <div className="flex border border-curb text-[11px]" role="tablist" aria-label="Wallet type">
+              {(["evm", "solana"] as const).map((k) => (
+                <button key={k} role="tab" aria-selected={kind === k} onClick={() => setKind(k)}
+                  className={`flex-1 py-1.5 uppercase tracking-wider ${kind === k ? "bg-forest text-spray" : "text-smoke hover:text-chalk"}`}>
+                  {k === "evm" ? listNets().filter((n) => n.type === "evm").map((n) => n.short).join("/") : "Solana"}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2">
-            <ConnectButton chainStatus="none" showBalance={false} accountStatus="address" />
+            {kind === "evm" ? (
+              <ConnectButton chainStatus="none" showBalance={false} accountStatus="address" />
+            ) : solAddress ? (
+              <button onClick={() => { solProvider()?.disconnect?.(); setSolAddress(null); }} className="btn px-3 py-2 text-xs">{solAddress.slice(0, 4)}…{solAddress.slice(-4)} ✕</button>
+            ) : (
+              <button onClick={connectSolana} className="btn-primary px-3 py-2 text-xs">Connect Solana wallet</button>
+            )}
             {isConnected && !unlocked && (
               <button onClick={signIn} disabled={checking} className="btn-primary px-3 py-2 text-xs">{checking && <Loader2 size={14} className="animate-spin" />}Verify holder</button>
             )}
           </div>
-          {unlocked && <p className="text-[11px] text-smoke">Balance <span className="text-spray">{Math.floor(gate!.balance ?? 0).toLocaleString()} $HOOD</span> · session 30 min</p>}
+          {unlocked && <p className="text-[11px] text-smoke">Balance <span className="text-spray">{Math.floor(gate!.balance ?? 0).toLocaleString()} {T}</span> · session 30 min</p>}
+          {gate?.breakdown && gate.breakdown.length > 1 && (
+            <ul className="space-y-0.5 text-[10px] text-smoke">
+              {gate.breakdown.map((b) => <li key={b.net} className="flex justify-between"><span>{b.short}</span><span className={b.balance === null ? "text-caution" : "text-chalk"}>{b.balance === null ? "unreadable" : Math.floor(b.balance).toLocaleString()}</span></li>)}
+            </ul>
+          )}
           {lockReason && <p className="text-[11px] text-caution">{lockReason}</p>}
         </div>
 

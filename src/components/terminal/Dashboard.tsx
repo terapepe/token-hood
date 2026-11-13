@@ -1,9 +1,12 @@
 "use client";
 
+import { HOOD_CONFIG } from "@/hood.config";
 import { useMemo, useState } from "react";
 import type { Side } from "@/lib/hood-data";
 import { NoSignal, Panel, SourceTag, useLive } from "./live";
 import { PriceChart } from "./PriceChart";
+import { NetTabs } from "../Networks";
+import { explorerAddr, explorerTx, getNet } from "@/lib/networks";
 import { ago, compact, hhmmss, int, pct, short, usd } from "./fmt";
 
 const ext = { target: "_blank", rel: "noopener noreferrer" } as const;
@@ -14,7 +17,7 @@ export function DataStream() {
   const { snap } = useLive();
   const m = snap.market.data, t = snap.token.data, c = snap.chain.data;
   const items: [string, string, boolean?][] = [
-    ["HOOD/USD", usd(m?.priceUsd)],
+    [`${HOOD_CONFIG.project.ticker}/USD`, usd(m?.priceUsd)],
     ["24H", pct(m?.change24h), (m?.change24h ?? 0) >= 0],
     ["MCAP", usd(m?.marketCap ?? m?.fdv, { compact: true })],
     ["LIQ", usd(m?.liquidityUsd, { compact: true })],
@@ -31,7 +34,7 @@ export function DataStream() {
     </span>
   ));
   return (
-    <div className="overflow-hidden border-y border-curb bg-concrete/70 py-2.5 text-xs tabular-nums" aria-label="Live $HOOD data stream">
+    <div className="overflow-hidden border-y border-curb bg-concrete/70 py-2.5 text-xs tabular-nums" aria-label="Live token data stream">
       <div className="ticker flex w-max">{row}{row}</div>
     </div>
   );
@@ -40,7 +43,8 @@ export function DataStream() {
 /* ---------------- 3. Token intelligence ---------------- */
 
 export function TokenIntel() {
-  const { snap, now } = useLive();
+  const { snap, now, net, setNet } = useLive();
+  const n = getNet(snap.net);
   const m = snap.market.data, t = snap.token.data;
   const buys = m?.buys24h ?? null, sells = m?.sells24h ?? null;
   const ratio = buys !== null && sells !== null && buys + sells > 0 ? (buys / (buys + sells)) * 100 : null;
@@ -54,6 +58,10 @@ export function TokenIntel() {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <NetTabs net={net} onChange={setNet} />
+        {n && <span className="text-[11px] text-smoke">{n.name}{snap.ca ? ` · ${snap.ca.slice(0, 8)}…${snap.ca.slice(-6)}` : " · contract TBA"}</span>}
+      </div>
       <div className="grid grid-cols-2 gap-px border border-curb bg-curb sm:grid-cols-3 lg:grid-cols-6">
         {tiles.map(([k, v, s]) => (
           <div key={k} className="group bg-concrete p-4 transition-colors hover:bg-forest/60">
@@ -72,7 +80,7 @@ export function TokenIntel() {
         <SourceTag feed={snap.market} now={now} />
         {m?.pairUrl && <a href={m.pairUrl} {...ext} className="hover:text-spray">open pair{m.dex ? ` · ${m.dex}` : ""} ↗</a>}
       </div>
-      <PriceChart now={now} />
+      <PriceChart now={now} net={snap.net} />
     </div>
   );
 }
@@ -82,24 +90,25 @@ export function TokenIntel() {
 const SIDE_STYLE: Record<Side, string> = { buy: "text-spray border-spray/40", sell: "text-alert border-alert/40", transfer: "text-smoke border-curb" };
 
 export function BlockMonitor() {
-  const { snap, now } = useLive();
+  const { snap, now, net, setNet } = useLive();
   const [filter, setFilter] = useState<"all" | Side>("all");
   const head = snap.chain.data?.latestBlock ?? null;
   const rows = useMemo(() => (snap.transfers.data ?? []).filter((x) => filter === "all" || x.side === filter), [snap.transfers.data, filter]);
   const hasPools = (snap.market.data?.pools.length ?? 0) > 0;
 
   return (
-    <Panel title="TRANSACTION FEED · $HOOD TRANSFERS" right={<SourceTag feed={snap.transfers} now={now} />}>
+    <Panel title={`TRANSACTION FEED · $${HOOD_CONFIG.project.ticker} TRANSFERS`} right={<SourceTag feed={snap.transfers} now={now} />}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-curb px-4 py-2.5 text-xs">
+        <NetTabs net={net} onChange={setNet} />
         <div className="flex border border-curb" role="group" aria-label="Filter transactions">
           {(["all", "buy", "sell", "transfer"] as const).map((f) => (
             <button key={f} onClick={() => setFilter(f)} aria-pressed={filter === f}
               className={`px-3 py-1 uppercase transition-colors ${filter === f ? "bg-spray text-asphalt" : "text-smoke hover:text-spray"}`}>{f}</button>
           ))}
         </div>
-        {!hasPools && <span className="text-caution">pool address unknown — buy/sell tagging off, all rows shown as transfers</span>}
+        {snap.transfers.ok && !hasPools && <span className="text-caution">pool address unknown — buy/sell tagging off, all rows shown as transfers</span>}
       </div>
-      {!snap.transfers.ok ? <NoSignal what="Transfer feed" /> : rows.length === 0 ? (
+      {!snap.transfers.ok ? <NoSignal what={snap.transfers.error === "not available on this network" ? "Transfer feed (no public explorer API for this network)" : "Transfer feed"} /> : rows.length === 0 ? (
         <p className="p-6 text-center text-xs text-smoke">No {filter === "all" ? "" : filter + " "}transfers in the latest window.</p>
       ) : (
         <div className="max-h-[30rem] overflow-auto">
@@ -117,10 +126,10 @@ export function BlockMonitor() {
                     <td className="px-4 py-2 text-smoke" title={x.timestamp}>{hhmmss(x.timestamp)} <span className="text-forest">·</span> {ago(x.timestamp, now)}</td>
                     <td className="px-4 py-2"><span className={`border px-1.5 py-0.5 uppercase ${SIDE_STYLE[x.side]}`}>{x.side}</span></td>
                     <td className="px-4 py-2 text-chalk">{compact(x.amount)}</td>
-                    <td className="px-4 py-2"><a href={`${snap.explorer}/address/${x.from}`} {...ext} className="text-chalk/80 hover:text-spray">{short(x.from)}</a></td>
-                    <td className="px-4 py-2"><a href={`${snap.explorer}/address/${x.to}`} {...ext} className="text-chalk/80 hover:text-spray">{short(x.to)}</a></td>
+                    <td className="px-4 py-2"><a href={explorerAddr(snap.net, x.from)} {...ext} className="text-chalk/80 hover:text-spray">{short(x.from)}</a></td>
+                    <td className="px-4 py-2"><a href={explorerAddr(snap.net, x.to)} {...ext} className="text-chalk/80 hover:text-spray">{short(x.to)}</a></td>
                     <td className="px-4 py-2 text-spray">✓ CONFIRMED{conf !== null && conf >= 0 && <span className="text-smoke"> · {int(conf)} conf</span>}</td>
-                    <td className="px-4 py-2"><a href={`${snap.explorer}/tx/${x.hash}`} {...ext} className="text-smoke hover:text-spray">{short(x.hash, 5)} ↗</a></td>
+                    <td className="px-4 py-2"><a href={explorerTx(snap.net, x.hash)} {...ext} className="text-smoke hover:text-spray">{short(x.hash, 5)} ↗</a></td>
                   </tr>
                 );
               })}

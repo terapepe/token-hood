@@ -1,9 +1,9 @@
-import { HOOD_CHAIN, HOOD_TOKEN_ADDRESS } from "./hood";
-import { HOOD_INFO } from "./hood-info";
+import { HOOD_CONFIG } from "@/hood.config";
+import { getNet, listNets, primaryId, tokenAddress, type Net, type NetworkId } from "./networks";
 
 /**
- * Live $HOOD data for the HOOD TERMINAL homepage. Every value comes from a public API:
- *  - Blockscout (Robinhood Chain explorer): holders, supply, transfers, chain stats, blocks
+ * Live $HOOD data per network (hood.config.ts). Every value comes from a public API:
+ *  - Blockscout (when the network has `blockscoutApi`): holders, supply, transfers, chain stats, blocks
  *  - DexScreener: price, liquidity, volume, market cap, pools
  *  - GeckoTerminal: OHLCV candles for the chart (and market fallback)
  * Nothing is invented: when a source fails, its block comes back with ok:false and the UI says so.
@@ -47,6 +47,7 @@ export type Candle = [number, number, number, number, number, number];
 export type Timeframe = "15m" | "1h" | "4h" | "1d";
 
 export type Snapshot = {
+  net: NetworkId;
   ca: string;
   isLive: boolean;
   explorer: string;
@@ -57,14 +58,17 @@ export type Snapshot = {
   fetchedAt: number;
 };
 
-const isCA = (a?: string | null) => Boolean(a && /^0x[0-9a-fA-F]{40}$/.test(a));
-const CA = (isCA(HOOD_TOKEN_ADDRESS) && !/^0x0+$/.test(HOOD_TOKEN_ADDRESS) ? HOOD_TOKEN_ADDRESS : HOOD_INFO.contractAddress).toLowerCase();
-const EXPLORER = HOOD_CHAIN.blockExplorers.default.url;
-const BLOCKSCOUT = (process.env.BLOCKSCOUT_API_URL || `${EXPLORER}/api/v2`).replace(/\/$/, "");
 const DEXSCREENER = "https://api.dexscreener.com";
 const GECKO = "https://api.geckoterminal.com/api/v2";
 /** Extra pool addresses (comma-separated) if a DEX isn't indexed by DexScreener. */
-const EXTRA_POOLS = (process.env.HOOD_POOL_ADDRESSES ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(isCA);
+const EXTRA_POOLS = (process.env.HOOD_POOL_ADDRESSES ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+
+/** Network ids used by DexScreener/GeckoTerminal for the *other* configured networks (to exclude). */
+const otherIds = (n: Net, key: "dexscreenerId" | "geckoId") =>
+  new Set(listNets().concat(Object.keys(HOOD_CONFIG.networks).map((k) => getNet(k)!)).filter((x) => x.id !== n.id).map((x) => x[key]).filter(Boolean));
+/** Pair/pool belongs to network n: exact id when configured, else "not another configured network". */
+const onNet = (n: Net, key: "dexscreenerId" | "geckoId", id: string) => (n[key] ? id === n[key] : !otherIds(n, key).has(id));
+const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 const num = (v: unknown): number | null => {
   if (v === null || v === undefined || v === "") return null;
@@ -95,28 +99,29 @@ async function feed<T>(source: string, fn: () => Promise<T>): Promise<Feed<T>> {
 type GtPool = { network: string; address: string; attrs: any };
 
 /** Finds the deepest GeckoTerminal pool where $HOOD is the base token. Cached 10 min. */
-async function geckoPool(): Promise<GtPool | null> {
+async function geckoPool(n: Net, CA: string): Promise<GtPool | null> {
   const j = await getJson(`${GECKO}/search/pools?query=${CA}`, 600);
   const pools: GtPool[] = (j?.data ?? [])
-    .filter((p: any) => String(p?.relationships?.base_token?.data?.id ?? "").toLowerCase().endsWith(CA))
+    .filter((p: any) => same(String(p?.relationships?.base_token?.data?.id ?? "").split("_").pop() ?? "", CA))
     .map((p: any) => {
       const id = String(p.id);
       const cut = id.lastIndexOf("_");
       return { network: id.slice(0, cut), address: String(p.attributes?.address ?? id.slice(cut + 1)), attrs: p.attributes ?? {} };
     })
+    .filter((p: GtPool) => onNet(n, "geckoId", p.network))
     .sort((a: GtPool, b: GtPool) => (num(b.attrs.reserve_in_usd) ?? 0) - (num(a.attrs.reserve_in_usd) ?? 0));
   return pools[0] ?? null;
 }
 
-async function dexscreenerMarket(): Promise<Market> {
+async function dexscreenerMarket(n: Net, CA: string): Promise<Market> {
   const j = await getJson(`${DEXSCREENER}/latest/dex/tokens/${CA}`);
   const pairs: any[] = (j?.pairs ?? []).filter(
-    (p: any) => String(p?.baseToken?.address ?? "").toLowerCase() === CA || String(p?.quoteToken?.address ?? "").toLowerCase() === CA,
+    (p: any) => onNet(n, "dexscreenerId", String(p?.chainId ?? "")) && (same(String(p?.baseToken?.address ?? ""), CA) || same(String(p?.quoteToken?.address ?? ""), CA)),
   );
   if (!pairs.length) throw new Error("no pairs indexed");
   pairs.sort((a, b) => (num(b?.liquidity?.usd) ?? 0) - (num(a?.liquidity?.usd) ?? 0));
   const top = pairs[0];
-  const isBase = String(top.baseToken?.address ?? "").toLowerCase() === CA;
+  const isBase = same(String(top.baseToken?.address ?? ""), CA);
   const sum = (k: "buys" | "sells") => pairs.reduce((s, p) => s + (num(p?.txns?.h24?.[k]) ?? 0), 0);
   return {
     priceUsd: isBase ? num(top.priceUsd) : null,
@@ -129,12 +134,12 @@ async function dexscreenerMarket(): Promise<Market> {
     sells24h: sum("sells"),
     dex: top.dexId ?? null,
     pairUrl: top.url ?? null,
-    pools: [...new Set([...pairs.map((p) => String(p.pairAddress ?? "").toLowerCase()).filter(isCA), ...EXTRA_POOLS])],
+    pools: [...new Set([...pairs.map((p) => String(p.pairAddress ?? "").toLowerCase()).filter(Boolean), ...EXTRA_POOLS])],
   };
 }
 
-async function geckoMarket(): Promise<Market> {
-  const p = await geckoPool();
+async function geckoMarket(n: Net, CA: string): Promise<Market> {
+  const p = await geckoPool(n, CA);
   if (!p) throw new Error("no pools indexed");
   const a = p.attrs;
   return {
@@ -152,30 +157,32 @@ async function geckoMarket(): Promise<Market> {
   };
 }
 
-async function getMarket(): Promise<Feed<Market>> {
-  const d = await feed("dexscreener", dexscreenerMarket);
+async function getMarket(n: Net, CA: string): Promise<Feed<Market>> {
+  const d = await feed("dexscreener", () => dexscreenerMarket(n, CA));
   if (d.ok) return d;
-  const g = await feed("geckoterminal", geckoMarket);
+  const g = await feed("geckoterminal", () => geckoMarket(n, CA));
   return g.ok ? g : { ...d, error: `dexscreener: ${d.error}; geckoterminal: ${g.error}` };
 }
 
 /* ---------------- Blockscout ---------------- */
 
-const getToken = () =>
+const noBlockscout = <T,>(): Feed<T> => ({ ok: false, data: null, source: "explorer", error: "not available on this network", at: Date.now() });
+
+const getToken = (BLOCKSCOUT: string, CA: string) =>
   feed<TokenStats>("blockscout", async () => {
     const t = await getJson(`${BLOCKSCOUT}/tokens/${CA}`, 60);
     const decimals = num(t.decimals) ?? 18;
     const supply = t.total_supply ? Number(BigInt(t.total_supply) / 10n ** BigInt(Math.max(decimals - 6, 0))) / 10 ** Math.min(decimals, 6) : null;
     return {
-      name: t.name ?? HOOD_INFO.name,
-      symbol: t.symbol ?? HOOD_INFO.symbol,
+      name: t.name ?? HOOD_CONFIG.project.name,
+      symbol: t.symbol ?? HOOD_CONFIG.project.ticker,
       holders: num(t.holders_count ?? t.holders),
       totalSupply: supply,
       decimals,
     };
   });
 
-const getChain = () =>
+const getChain = (BLOCKSCOUT: string) =>
   feed<ChainStats>("blockscout", async () => {
     const [s, b] = await Promise.all([getJson(`${BLOCKSCOUT}/stats`, 10), getJson(`${BLOCKSCOUT}/main-page/blocks`, 5).catch(() => [])]);
     const blocks = (Array.isArray(b) ? b : b?.items ?? []).slice(0, 6).map((x: any) => ({
@@ -207,7 +214,7 @@ function toAmount(value: string | undefined, decimals: number): number {
   }
 }
 
-const getTransfers = (pools: string[]) =>
+const getTransfers = (BLOCKSCOUT: string, CA: string, pools: string[]) =>
   feed<Transfer[]>("blockscout", async () => {
     const j = await getJson(`${BLOCKSCOUT}/tokens/${CA}/transfers`, 5);
     const poolSet = new Set(pools.map((p) => p.toLowerCase()));
@@ -230,10 +237,18 @@ const getTransfers = (pools: string[]) =>
 
 /* ---------------- Public API ---------------- */
 
-export async function getSnapshot(): Promise<Snapshot> {
-  const [market, token, chain] = await Promise.all([getMarket(), getToken(), getChain()]);
-  const transfers = await getTransfers(market.data?.pools ?? EXTRA_POOLS);
-  return { ca: CA, isLive: isCA(CA), explorer: EXPLORER, market, token, chain, transfers, fetchedAt: Date.now() };
+const noCa = <T,>(): Feed<T> => ({ ok: false, data: null, source: "config", error: "contract not set", at: Date.now() });
+
+/** Snapshot for one network (default: main network). */
+export async function getSnapshot(netId?: string | null): Promise<Snapshot> {
+  const n = getNet(netId && listNets().some((x) => x.id === netId) ? netId : primaryId())!;
+  const CA = tokenAddress(n.id);
+  const BS = (process.env[`BLOCKSCOUT_API_${n.id.toUpperCase()}`] || n.blockscoutApi || "").replace(/\/$/, "");
+  const base = { net: n.id, ca: CA, isLive: Boolean(CA), explorer: n.explorer, fetchedAt: Date.now() };
+  if (!CA) return { ...base, market: noCa(), token: noCa(), chain: BS ? await getChain(BS) : noBlockscout(), transfers: noCa() };
+  const [market, token, chain] = await Promise.all([getMarket(n, CA), BS ? getToken(BS, CA) : noBlockscout<TokenStats>(), BS ? getChain(BS) : noBlockscout<ChainStats>()]);
+  const transfers = BS ? await getTransfers(BS, CA, market.data?.pools ?? EXTRA_POOLS) : noBlockscout<Transfer[]>();
+  return { ...base, market, token, chain, transfers };
 }
 
 const TF: Record<Timeframe, { path: string; aggregate: number; limit: number }> = {
@@ -243,9 +258,12 @@ const TF: Record<Timeframe, { path: string; aggregate: number; limit: number }> 
   "1d": { path: "day", aggregate: 1, limit: 180 },
 };
 
-export async function getCandles(tf: Timeframe): Promise<Feed<{ candles: Candle[]; pool: string; network: string }>> {
+export async function getCandles(tf: Timeframe, netId?: string | null): Promise<Feed<{ candles: Candle[]; pool: string; network: string }>> {
+  const n = getNet(netId && listNets().some((x) => x.id === netId) ? netId : primaryId())!;
+  const CA = tokenAddress(n.id);
   return feed("geckoterminal", async () => {
-    const p = await geckoPool();
+    if (!CA) throw new Error("contract not set");
+    const p = await geckoPool(n, CA);
     if (!p) throw new Error("no pool indexed for chart");
     const c = TF[tf];
     const j = await getJson(

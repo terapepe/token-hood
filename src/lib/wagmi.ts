@@ -1,11 +1,16 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { http } from "wagmi";
-import { HOOD_CHAIN, HOOD_RPC_PUBLIC } from "./hood";
+import { robinhood } from "viem/chains";
+import type { Chain } from "viem";
+import { evmChains } from "./networks";
+
+/** EVM networks shown by hood.config.ts (falls back to Robinhood Chain so wagmi always has a chain). */
+const chains = (evmChains().length ? evmChains() : [robinhood]) as [Chain, ...Chain[]];
 
 export const wagmiConfig = getDefaultConfig({
   appName: "HOOD TERMINAL",
   projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID || "demo",
-  chains: [HOOD_CHAIN],
-  transports: { [HOOD_CHAIN.id]: http(HOOD_RPC_PUBLIC) },
+  chains,
+  transports: Object.fromEntries(chains.map((c) => [c.id, http()])),
   ssr: true,
 });

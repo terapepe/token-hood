@@ -1,6 +1,8 @@
-import { getHoodInfo } from "@/lib/hood-live";
+import { HOOD_CONFIG } from "@/hood.config";
 import { getSnapshot } from "@/lib/hood-data";
-import { HOOD_MIN_HOLD, buyUrl, explorerTokenUrl } from "@/lib/hood";
+import { HOOD_MIN_HOLD } from "@/lib/hood";
+import { explorerToken, getNet, isSingle, netNames, primaryId } from "@/lib/networks";
+import { BuyLinks, CaCards, NetworkBadges } from "@/components/Networks";
 import { isAiConfigured } from "@/lib/ai";
 import { LiveProvider } from "@/components/terminal/live";
 import { MatrixRain } from "@/components/terminal/MatrixRain";
@@ -8,7 +10,6 @@ import { BootSequence } from "@/components/terminal/BootSequence";
 import { RevealObserver } from "@/components/terminal/Reveal";
 import { BlockMonitor, DataStream, HeroReadout, TokenIntel } from "@/components/terminal/Dashboard";
 import Link from "next/link";
-import { CopyButton } from "@/components/CopyButton";
 
 export const dynamic = "force-dynamic";
 
@@ -34,15 +35,19 @@ function SectionHead({ n, kicker, title, text }: { n: string; kicker: string; ti
 }
 
 export default async function Home() {
-  const [info, snap] = await Promise.all([getHoodInfo(), getSnapshot()]);
-  const { symbol, contractAddress: ca, x, telegram, discord, isLive } = info;
-  const community = telegram || discord || x.url;
+  const snap = await getSnapshot();
+  const { project, social } = HOOD_CONFIG;
+  const symbol = project.ticker;
+  const { x, telegram, discord } = social;
+  const community = telegram || discord || x;
+  const main = getNet(primaryId())!;
+  const ca = snap.ca;
 
   const checks = [
     { label: "ai/design-engine", ok: isAiConfigured },
     { label: "dexscreener/market", ok: snap.market.ok },
     { label: "blockscout/token", ok: snap.token.ok },
-    { label: "blockscout/chain", ok: snap.chain.ok, detail: snap.chain.data?.latestBlock ? `#${snap.chain.data.latestBlock}` : undefined },
+    { label: `${main.id}/chain`, ok: snap.chain.ok, detail: snap.chain.data?.latestBlock ? `#${snap.chain.data.latestBlock}` : undefined },
   ];
 
   const jsonLd = {
@@ -53,13 +58,13 @@ export default async function Home() {
     operatingSystem: "Web",
     description: "AI terminal that analyses any website and generates a redesigned, downloadable HTML site.",
     url: `https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN || "tokenhood.online"}`,
-    sameAs: [x.url, telegram, discord].filter(Boolean),
+    sameAs: [x, telegram, discord].filter(Boolean),
   };
 
   return (
     <LiveProvider initial={snap}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <BootSequence checks={checks} ca={ca} />
+      <BootSequence checks={checks} ca={ca || "TBA"} />
       <MatrixRain opacity={0.14} />
       <div aria-hidden className="crt" />
       <RevealObserver />
@@ -81,9 +86,11 @@ export default async function Home() {
               </p>
               <div className="mt-9 flex flex-wrap gap-3">
                 <Link href="/terminal" className="btn-primary px-6 py-3">&gt; Launch terminal</Link>
-                {isLive && <a href={buyUrl(ca)} {...ext} className="btn px-6 py-3">Buy ${symbol}</a>}
+                <BuyLinks className="btn px-6 py-3" mainOnly />
                 <a href="#pipeline" className="btn px-6 py-3">How it works</a>
               </div>
+              {isSingle() && main.tagline && <p className="mt-6 text-sm" style={{ color: main.color }}>{main.name} · {main.tagline}</p>}
+              <div className="mt-5"><NetworkBadges /></div>
               <dl className="mt-10 grid max-w-lg grid-cols-3 gap-px border border-curb bg-curb text-[11px]">
                 {[["ACCESS", `≥ ${HOOD_MIN_HOLD.toLocaleString()} $${symbol}`], ["OUTPUT", "1 HTML file"], ["ENGINE", isAiConfigured ? "online" : "offline"]].map(([k, v]) => (
                   <div key={k} className="bg-asphalt/80 p-3"><dt className="tracking-[0.2em] text-smoke">{k}</dt><dd className={`mt-1 truncate ${v === "offline" ? "text-caution" : "text-chalk"}`}>{v}</dd></div>
@@ -145,7 +152,7 @@ export default async function Home() {
             {[
               ["HOLD", `Keep at least ${HOOD_MIN_HOLD.toLocaleString()} $${symbol} in your wallet. Nothing is spent — the terminal only checks your balance.`],
               ["SIGN", "Sign a short access message. It is free, sends no transaction and expires after 30 minutes."],
-              ["RUN", "Your balance is read on Robinhood Chain on every run. Fair-use limit applies per wallet."],
+              ["RUN", `Your balance is read on-chain (${netNames()}) on every run. Fair-use limit applies per wallet.`],
             ].map(([k, v], i) => (
               <div key={k} className="panel p-6">
                 <p className="text-[11px] text-smoke">0{i + 1}</p>
@@ -154,11 +161,9 @@ export default async function Home() {
               </div>
             ))}
           </div>
-          <div className="reveal mt-4 flex flex-wrap items-center gap-3 border border-curb bg-asphalt/70 p-4 text-xs">
-            <span className="text-smoke">${symbol} CONTRACT</span>
-            <code className="break-all text-spray">{ca}</code>
-            {isLive && <CopyButton value={ca} className="border border-curb text-chalk" />}
-            {isLive && <a href={buyUrl(ca)} {...ext} className="btn-primary ml-auto px-4 py-2 text-xs">Get ${symbol}</a>}
+          <div className="reveal mt-4 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
+            <CaCards />
+            <div className="flex flex-wrap gap-2 lg:flex-col"><BuyLinks className="btn-primary px-4 py-2 text-xs" short /></div>
           </div>
         </section>
 
@@ -187,8 +192,8 @@ export default async function Home() {
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-smoke">Hold ${symbol}, unlock the terminal, rebuild the web.</p>
             <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
-              {isLive && <a href={buyUrl(ca)} {...ext} className="btn-primary px-8 py-4 text-base">&gt; Buy ${symbol}</a>}
-              {isLive && <a href={explorerTokenUrl(ca)} {...ext} className="btn px-8 py-4 text-base">View contract</a>}
+              <BuyLinks className="btn-primary px-8 py-4 text-base" />
+              {explorerToken(main.id) && <a href={explorerToken(main.id)} {...ext} className="btn px-8 py-4 text-base">View contract</a>}
               <a href={community} {...ext} className="btn px-8 py-4 text-base">Join community</a>
             </div>
           </div>

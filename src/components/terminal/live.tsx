@@ -2,11 +2,12 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { Feed, Snapshot, Transfer } from "@/lib/hood-data";
+import { HOOD_CONFIG, type NetworkId } from "@/hood.config";
 import { ago, compact, short } from "./fmt";
 
 export type LogLine = { id: string; t: number; level: "ok" | "info" | "buy" | "sell" | "warn"; text: string };
 
-type Live = { snap: Snapshot; log: LogLine[]; now: number; polling: boolean };
+type Live = { snap: Snapshot; log: LogLine[]; now: number; polling: boolean; net: NetworkId; setNet: (n: NetworkId) => void };
 const Ctx = createContext<Live | null>(null);
 
 const POLL_MS = 20_000;
@@ -18,6 +19,7 @@ export function LiveProvider({ initial, children }: { initial: Snapshot; childre
   const [now, setNow] = useState(() => initial.fetchedAt);
   const [polling, setPolling] = useState(false);
   const prev = useRef(initial);
+  const [net, setNet] = useState<NetworkId>(initial.net);
 
   useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 1000);
@@ -27,9 +29,9 @@ export function LiveProvider({ initial, children }: { initial: Snapshot; childre
       setPolling(true);
       try {
         const t0 = performance.now();
-        const next: Snapshot = await fetch("/api/hood", { cache: "no-store" }).then((r) => r.json());
+        const next: Snapshot = await fetch(`/api/hood?net=${net}`, { cache: "no-store" }).then((r) => r.json());
         if (stop) return;
-        const lines = diff(prev.current, next, Math.round(performance.now() - t0));
+        const lines = prev.current.net === next.net ? diff(prev.current, next, Math.round(performance.now() - t0)) : [{ id: `n${Date.now()}`, t: Date.now(), level: "info" as const, text: `NETWORK → ${next.net.toUpperCase()}` }];
         prev.current = next;
         setSnap(next);
         if (lines.length) setLog((l) => [...lines, ...l].slice(0, 60));
@@ -39,6 +41,7 @@ export function LiveProvider({ initial, children }: { initial: Snapshot; childre
         setPolling(false);
       }
     }
+    if (net !== prev.current.net) poll();
     const id = setInterval(poll, POLL_MS);
     const onVis = () => !document.hidden && poll();
     document.addEventListener("visibilitychange", onVis);
@@ -48,9 +51,9 @@ export function LiveProvider({ initial, children }: { initial: Snapshot; childre
       clearInterval(tick);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, []);
+  }, [net]);
 
-  return <Ctx.Provider value={{ snap, log, now, polling }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ snap, log, now, polling, net, setNet }}>{children}</Ctx.Provider>;
 }
 
 export function useLive(): Live {
@@ -69,7 +72,7 @@ const feedLine = (name: string, f: Feed<unknown>, t: number): LogLine => ({
 function txLine(x: Transfer, t: number): LogLine {
   const lvl = x.side === "buy" ? "buy" : x.side === "sell" ? "sell" : "info";
   const who = x.side === "buy" ? short(x.to) : short(x.from);
-  return { id: `tx${x.hash}${x.from}${x.to}`, t, level: lvl, text: `${x.side.toUpperCase()} ${compact(x.amount)} HOOD · ${who}` };
+  return { id: `tx${x.hash}${x.from}${x.to}`, t, level: lvl, text: `${x.side.toUpperCase()} ${compact(x.amount)} ${HOOD_CONFIG.project.ticker} · ${who}` };
 }
 
 function bootLog(s: Snapshot): LogLine[] {
