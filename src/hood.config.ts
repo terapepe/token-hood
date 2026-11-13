@@ -1,15 +1,10 @@
-/**
- * HOOD TERMINAL — site config. Edit this file on GitHub; Vercel redeploys automatically.
- * Secrets (ANTHROPIC_API_KEY, private RPC URLs) stay in Vercel environment variables, never here.
- */
+
 export const HOOD_CONFIG = {
   project: {
     name: "HOOD",
     ticker: "HOOD",
     tagline: "AI web intelligence terminal",
   },
-
-  /** Social links. Leave "" to hide. */
   social: {
     x: "https://x.com/token_HOOD",
     xHandle: "@token_HOOD",
@@ -17,26 +12,12 @@ export const HOOD_CONFIG = {
     discord: "",
   },
 
-  /** Platform that launched the token (optional, url "" = plain text). */
-  deployer: { name: "Ponsfamily", url: "https://ponsfamily.com/launchpad/0x98184105c254948060132d2a7b39be94d36c77be" },
-
-  /**
-   * $HOOD contract addresses.
-   *  address = CA shared by all EVM networks (Robinhood, Base, BSC)
-   *  sol     = mint address on Solana
-   * A network can override with its own `ca` below. "" = not deployed (shows "TBA").
-   */
+  deployer: { name: "", url: "" },
   token: {
-    address: "0x98184105c254948060132d2a7b39be94d36c77be",
+    address: "",
     sol: "",
   },
 
-  /**
-   * Network mode:
-   *  "single" = only `singleNetwork` is shown — it is also the main network and sets the accent color
-   *  "multi"  = all 4 networks, ordered by `multiOrder`; `primaryNetwork` is the default data view
-   * Holder access counts $HOOD across every shown network of the connected wallet type (EVM or Solana).
-   */
   mode: "single" as "single" | "multi",
   singleNetwork: "robinhood" as NetworkId,
   multiOrder: ["robinhood", "solana", "base", "bsc"] as NetworkId[],
@@ -44,9 +25,7 @@ export const HOOD_CONFIG = {
 
   /** AI terminal access. */
   access: {
-    /** Minimum $HOOD (whole tokens, summed over shown networks) to use the terminal. */
-    minHold: 100000,
-    /** Fair-use limit per wallet. */
+    minHold: 30000,
     runsPerHour: 10,
   },
 
