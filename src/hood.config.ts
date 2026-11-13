@@ -1,8 +1,8 @@
 
 export const HOOD_CONFIG = {
   project: {
-    name: "HOOD TERMINAL",
-    ticker: "HOOT",
+    name: "HOOD",
+    ticker: "HOOD",
     tagline: "AI web intelligence terminal",
   },
   social: {
@@ -14,12 +14,12 @@ export const HOOD_CONFIG = {
 
   deployer: { name: "", url: "" },
   token: {
-    address: "0x0737afe09a3cda7abcd514e62c84f16a8bbbb774",
+    address: "",
     sol: "",
   },
 
   mode: "single" as "single" | "multi",
-  singleNetwork: "robinhood" as NetworkId,
+  singleNetwork: "base" as NetworkId,
   multiOrder: ["robinhood", "solana", "base", "bsc"] as NetworkId[],
   primaryNetwork: "robinhood" as NetworkId,
 
