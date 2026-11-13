@@ -1,9 +1,9 @@
 /**
- * Public info about the $HOOD token, shown on the homepage and footer.
+ * Public info about the $HOOD token and its links, shown across HOOD TERMINAL.
  * Edit these values when the token launches.
  */
 export const HOOD_INFO = {
-  name: "TokenHood",
+  name: "HOOD",
   symbol: "HOOD",
   /** Contract address. Leave "0x..." until the token is live. */
   contractAddress: "0x98184105c254948060132d2a7b39be94d36c77be",

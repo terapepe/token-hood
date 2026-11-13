@@ -27,7 +27,7 @@ export function BootSequence({ checks, ca }: { checks: BootCheck[]; ca: string }
       "> mounting /dev/robinhood-chain ........ done",
       `> target contract ${ca.slice(0, 10)}…${ca.slice(-6)}`,
       ...checks.map((c) => `> link ${c.label.padEnd(22, ".")} ${c.ok ? "[ OK ]" : "[FAIL]"}${c.detail ? ` ${c.detail}` : ""}`),
-      "> decrypting command center ............ done",
+      "> loading HOOD AI design engine ......... done",
     ];
     const timers: number[] = [];
     script.forEach((l, i) => timers.push(window.setTimeout(() => setLines((x) => [...x, l]), 180 + i * 230)));

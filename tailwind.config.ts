@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 import containerQueries from "@tailwindcss/container-queries";
 
-/** HOOD TERMINAL palette. Token sites (SitePreview) use their own inline palettes, not these. */
+/** HOOD TERMINAL palette. */
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {

@@ -5,10 +5,10 @@ import { CopyButton } from "./CopyButton";
 import { Mark } from "./Header";
 
 const NAV = [
-  { href: "/#intel", label: "Token intel" },
+  { href: "/#terminal", label: "AI terminal" },
+  { href: "/#access", label: "Access" },
+  { href: "/#token", label: "Token intel" },
   { href: "/#monitor", label: "Tx monitor" },
-  { href: "/builder", label: "Build a site" },
-  { href: "/feed", label: "Feed" },
 ];
 
 export function Footer({ info }: { info: HoodInfo }) {
@@ -21,8 +21,8 @@ export function Footer({ info }: { info: HoodInfo }) {
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1fr_auto_auto] md:gap-20">
         <div className="max-w-sm">
           <Link href="/" className="flex items-center gap-2.5 font-bold tracking-[0.2em] text-chalk"><Mark /><span>HOOD<span className="text-spray">_</span>TERMINAL</span></Link>
-          <p className="mt-4 leading-relaxed text-smoke">Live ${symbol} intelligence on {chainName}. Token websites paid once in ${symbol}.</p>
-          <p className="mt-3 text-[11px] text-smoke/80">Data: Blockscout, DexScreener, GeckoTerminal. Nothing here is financial advice.</p>
+          <p className="mt-4 leading-relaxed text-smoke">AI terminal that analyses websites and ships redesigned code. Powered by ${symbol} on {chainName}.</p>
+          <p className="mt-3 text-[11px] text-smoke/80">AI: Claude. Data: Blockscout, DexScreener, GeckoTerminal. Nothing here is financial advice.</p>
         </div>
         <nav aria-label="Footer" className="uppercase tracking-[0.15em]">
           <ul className="space-y-2.5">{NAV.map((n) => <li key={n.href}><Link href={n.href} className={link}>&gt; {n.label}</Link></li>)}</ul>

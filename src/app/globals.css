@@ -2,9 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-html { color-scheme: dark; --font-display: var(--font-anton); scroll-behavior: smooth; }
-/* Tokenhood's own pages are HOOD TERMINAL: monospace everywhere. Token sites (SitePreview) keep their own fonts. */
-.site-chrome { --font-display: var(--font-jetbrains), var(--font-plex), ui-monospace, monospace; --font-body: var(--font-jetbrains), var(--font-plex), ui-monospace, monospace; font-feature-settings: "zero" 1; }
+html { color-scheme: dark; scroll-behavior: smooth; }
+/* HOOD TERMINAL: monospace everywhere. */
+html { --font-display: var(--font-jetbrains), var(--font-plex), ui-monospace, monospace; --font-body: var(--font-jetbrains), var(--font-plex), ui-monospace, monospace; font-feature-settings: "zero" 1; }
 body { @apply bg-asphalt text-chalk font-sans antialiased; }
 :focus-visible { outline: 2px solid #39FF75; outline-offset: 3px; }
 ::selection { background: #39FF75; color: #050806; }

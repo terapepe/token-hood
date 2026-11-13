@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="HOOD">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="70%">
+      <stop offset="0" stop-color="#0E2216"/>
+      <stop offset="1" stop-color="#050806"/>
+    </radialGradient>
+    <linearGradient id="hood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1B3A27"/>
+      <stop offset="1" stop-color="#0B1710"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#39FF75"/>
+      <stop offset="1" stop-color="#1FA84B"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="7" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="scan" width="6" height="6" patternUnits="userSpaceOnUse">
+      <rect width="6" height="3" fill="#000" opacity=".18"/>
+    </pattern>
+    <clipPath id="frame"><rect x="16" y="16" width="480" height="480" rx="112"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#frame)">
+    <rect width="512" height="512" fill="url(#bg)"/>
+    <!-- grid -->
+    <g stroke="#39FF75" stroke-opacity=".07" stroke-width="2">
+      <path d="M0 96H512M0 192H512M0 288H512M0 384H512M96 0V512M192 0V512M288 0V512M384 0V512"/>
+    </g>
+    <!-- hood silhouette -->
+    <path d="M256 70c-92 0-152 74-160 168-6 70-2 140-24 210h368c-22-70-18-140-24-210-8-94-68-168-160-168z" fill="url(#hood)" stroke="url(#rim)" stroke-width="6"/>
+    <!-- inner fold -->
+    <path d="M256 104c-70 0-116 58-120 132" fill="none" stroke="#39FF75" stroke-opacity=".25" stroke-width="4" stroke-linecap="round"/>
+    <!-- face void -->
+    <path d="M256 150c-58 0-94 46-98 108-3 48 6 96 24 132h148c18-36 27-84 24-132-4-62-40-108-98-108z" fill="#030503"/>
+    <!-- terminal prompt -->
+    <g filter="url(#glow)" fill="none" stroke="#39FF75" stroke-width="18" stroke-linecap="square" stroke-linejoin="miter">
+      <path d="M200 238l40 32-40 32"/>
+      <path d="M262 312h56"/>
+    </g>
+    <rect width="512" height="512" fill="url(#scan)"/>
+  </g>
+  <rect x="19" y="19" width="474" height="474" rx="109" fill="none" stroke="#39FF75" stroke-opacity=".55" stroke-width="6"/>
+</svg>

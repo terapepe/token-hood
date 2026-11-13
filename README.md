@@ -1,25 +1,25 @@
-# Tokenhood
+# HOOD TERMINAL
 
-Meme and token micro-sites paid in $HOOD. Next.js (App Router) + Tailwind + wagmi/viem/RainbowKit.
+AI terminal for $HOOD holders: paste a website URL, HOOD scans and analyses it (design, UX, content, SEO, accessibility)
+and generates a redesigned, self-contained HTML site to the user's brief. Preview on desktop/tablet/mobile, request revisions, download.
+Also shows live $HOOD market data and transfers on Robinhood Chain.
+
+Next.js (App Router) + Tailwind + wagmi/viem/RainbowKit + Claude API.
 
 ## Run locally
 ```bash
-cp .env.example .env.local   # fill in the values
+cp .env.example .env.local   # set ANTHROPIC_API_KEY at minimum
 npm install
 npm run dev
 ```
 
-## Deploy
-Push to GitHub; Vercel builds automatically. Add every variable from `.env.example` in
-Vercel > Project > Settings > Environment Variables.
+## How it works
+- `lib/scan.ts` fetches the target page (public addresses only, redirects re-checked) and builds a dossier: headings, nav, sections, CTAs, images, forms, colors, fonts, tech stack, quality checks.
+- `lib/ai.ts` asks Claude for a JSON analysis, then streams a single HTML file.
+- `POST /api/terminal/run` streams NDJSON events (log, dossier, analysis, code, done, error). Revisions send the previous HTML + a request.
+- Access: the wallet signs a timestamped message (no transaction); the server verifies it and reads `balanceOf` on Robinhood Chain. Must hold `NEXT_PUBLIC_HOOD_MIN_HOLD`.
+- Live token data: Blockscout, DexScreener, GeckoTerminal (`lib/hood-data.ts`). Failing sources show NO SIGNAL; no data is simulated.
 
-- **Database:** create a Supabase project, run `supabase/schema.sql`, set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. Without them, published pages live in memory and disappear on redeploy.
-- **Subdomains:** add `*.tokenhood.online` as a domain in Vercel (needs wildcard DNS / Vercel nameservers). `middleware.ts` rewrites `name.tokenhood.online` to `/p/name`.
-
-## How payment is verified
-1. The browser sends a `transfer` of the template fee from the payer to the treasury (`useHoodPayment`).
-2. The payer signs `Tokenhood: publish "<slug>" with payment <txHash>`.
-3. `POST /api/pages` re-validates the draft, checks the signature, reads the receipt on Base, and requires a `$HOOD Transfer(payer -> treasury) >= fee`. Each tx hash can publish one page.
-
-## Next steps
-Server-side votes (signed by wallet), moderation/reporting, image storage (Supabase Storage instead of data URLs), editing published pages.
+## Deploy (Vercel)
+Add the variables from `.env.example`. Generation can take 1–3 minutes; the run route sets `maxDuration = 300`
+(needs a plan / Fluid Compute that allows it).

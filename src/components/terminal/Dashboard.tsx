@@ -1,9 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { HoodInfo } from "@/lib/hood-live";
 import type { Side } from "@/lib/hood-data";
-import { CopyButton } from "../CopyButton";
 import { NoSignal, Panel, SourceTag, useLive } from "./live";
 import { PriceChart } from "./PriceChart";
 import { ago, compact, hhmmss, int, pct, short, usd } from "./fmt";
@@ -35,85 +33,6 @@ export function DataStream() {
   return (
     <div className="overflow-hidden border-y border-curb bg-concrete/70 py-2.5 text-xs tabular-nums" aria-label="Live $HOOD data stream">
       <div className="ticker flex w-max">{row}{row}</div>
-    </div>
-  );
-}
-
-/* ---------------- 2. Command center ---------------- */
-
-export function CommandCenter({ info }: { info: HoodInfo }) {
-  const { snap, now, log, polling } = useLive();
-  const c = snap.chain.data, t = snap.token.data;
-  const blockAge = c?.blocks[0] ? ago(c.blocks[0].timestamp, now) : "—";
-
-  return (
-    <div className="grid gap-4 lg:grid-cols-12">
-      <Panel title="NETWORK STATUS · ROBINHOOD CHAIN" right={<SourceTag feed={snap.chain} now={now} />} className="lg:col-span-5">
-        {!c ? <NoSignal what="Chain stats" /> : (
-          <div className="p-4">
-            <div className="grid grid-cols-2 gap-px bg-curb">
-              {[
-                ["HEAD BLOCK", c.latestBlock ? `#${int(c.latestBlock)}` : "—", blockAge],
-                ["BLOCK TIME", c.avgBlockTimeMs ? `${(c.avgBlockTimeMs / 1000).toFixed(2)}s` : "—", "average"],
-                ["TX TODAY", int(c.txToday), "network-wide"],
-                ["GAS", c.gasGwei !== null ? `${c.gasGwei} gwei` : "—", "average"],
-              ].map(([k, v, s]) => (
-                <div key={k} className="bg-concrete p-3">
-                  <p className="text-[10px] tracking-[0.2em] text-smoke">{k}</p>
-                  <p className="mt-1 text-lg tabular-nums text-chalk">{v}</p>
-                  <p className="text-[10px] text-smoke">{s}</p>
-                </div>
-              ))}
-            </div>
-            {c.utilization !== null && (
-              <div className="mt-4">
-                <div className="flex justify-between text-[10px] tracking-[0.2em] text-smoke"><span>NETWORK UTILIZATION</span><span className="text-spray">{c.utilization.toFixed(1)}%</span></div>
-                <div className="mt-1.5 h-1.5 bg-forest"><div className="h-full bg-spray shadow-glow transition-[width] duration-700" style={{ width: `${Math.min(100, c.utilization)}%` }} /></div>
-              </div>
-            )}
-            <ul className="mt-4 divide-y divide-curb border border-curb text-xs">
-              {c.blocks.slice(0, 5).map((b) => (
-                <li key={b.height} className="row-in flex items-center justify-between gap-2 px-3 py-1.5 tabular-nums">
-                  <a href={`${snap.explorer}/block/${b.height}`} {...ext} className="text-spray hover:underline">#{int(b.height)}</a>
-                  <span className="text-smoke">{b.txs} tx</span>
-                  <span className="text-smoke">{ago(b.timestamp, now)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </Panel>
-
-      <Panel title="TOKEN DOSSIER" right={<SourceTag feed={snap.token} now={now} />} className="lg:col-span-3">
-        <dl className="divide-y divide-curb text-xs">
-          {([
-            ["NAME", t?.name ?? info.name],
-            ["SYMBOL", `$${t?.symbol ?? info.symbol}`],
-            ["CHAIN", info.chainName],
-            ["HOLDERS", int(t?.holders)],
-            ["SUPPLY", compact(t?.totalSupply)],
-            ["DEPLOYER", info.deployer.url ? <a key="d" href={info.deployer.url} {...ext} className="text-spray hover:underline">{info.deployer.name}</a> : info.deployer.name],
-          ] as [string, React.ReactNode][]).map(([k, v]) => (
-            <div key={k} className="flex justify-between gap-3 px-4 py-2.5"><dt className="text-smoke">{k}</dt><dd className="text-right text-chalk">{v}</dd></div>
-          ))}
-          <div className="px-4 py-3">
-            <dt className="flex items-center justify-between text-smoke">CONTRACT {info.isLive && <CopyButton value={info.contractAddress} className="border-curb text-chalk" />}</dt>
-            <dd className="mt-2 break-all border border-curb bg-asphalt p-2 text-[11px] leading-relaxed text-spray">{info.contractAddress}</dd>
-          </div>
-        </dl>
-      </Panel>
-
-      <Panel title="SYSTEM ACTIVITY" right={<span className="text-[10px] normal-case tracking-normal text-smoke">{polling ? "syncing…" : "poll 20s"}</span>} className="lg:col-span-4">
-        <ol className="h-[22.5rem] overflow-y-auto p-3 text-[11px] leading-6" aria-live="polite">
-          {log.map((l) => (
-            <li key={l.id} className="row-in flex gap-2">
-              <span className="shrink-0 tabular-nums text-smoke">{hhmmss(l.t)}</span>
-              <span className={{ ok: "text-spray", info: "text-chalk/80", buy: "text-spray", sell: "text-alert", warn: "text-caution" }[l.level]}>{l.text}</span>
-            </li>
-          ))}
-          <li className="cursor text-smoke">_</li>
-        </ol>
-      </Panel>
     </div>
   );
 }
@@ -239,7 +158,7 @@ export function HeroReadout({ symbol }: { symbol: string }) {
         </g>
       </svg>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/hood.jpg" alt={`$${symbol} logo`} width={160} height={160} className="absolute left-1/2 top-1/2 h-[34%] w-[34%] -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-spray shadow-glow" />
+      <img src="/hood.svg" alt={`$${symbol} logo`} width={160} height={160} className="absolute left-1/2 top-1/2 h-[34%] w-[34%] -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_0_24px_rgba(57,255,117,.45)]" />
       <div className="absolute left-0 top-[6%] border border-curb bg-asphalt/85 px-3 py-2 text-[11px] backdrop-blur">
         <p className="tracking-[0.2em] text-smoke">PRICE</p>
         <p className="text-base tabular-nums text-chalk">{usd(m?.priceUsd)}</p>

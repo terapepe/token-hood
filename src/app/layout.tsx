@@ -1,31 +1,30 @@
 import type { Metadata, Viewport } from "next";
-import { Anton, Bricolage_Grotesque, IBM_Plex_Mono, JetBrains_Mono } from "next/font/google";
+import { IBM_Plex_Mono, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
-// Anton + Bricolage are used by token sites; JetBrains Mono + IBM Plex Mono by HOOD TERMINAL.
-const display = Anton({ weight: "400", subsets: ["latin"], variable: "--font-anton" });
-const body = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-body" });
 const jet = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
 const plex = IBM_Plex_Mono({ weight: ["400", "500", "600"], subsets: ["latin"], variable: "--font-plex", display: "swap" });
 
 const ROOT = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "tokenhood.online";
-const DESC = "HOOD TERMINAL — live $HOOD intelligence on Robinhood Chain: price, liquidity, holders, on-chain transactions and the Tokenhood site builder paid in $HOOD.";
+const TITLE = "HOOD TERMINAL — AI website analysis & redesign";
+const DESC = "Paste any URL. HOOD's AI analyses the design, UX and SEO, then generates a redesigned, downloadable website to your brief. Access for $HOOD holders on Robinhood Chain.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(`https://${ROOT}`),
-  title: { default: "HOOD TERMINAL — $HOOD on Robinhood Chain", template: "%s | HOOD TERMINAL" },
+  title: { default: TITLE, template: "%s | HOOD TERMINAL" },
   description: DESC,
-  keywords: ["HOOD", "$HOOD", "Robinhood Chain", "meme token", "Tokenhood", "token website builder", "crypto terminal"],
+  keywords: ["HOOD", "$HOOD", "AI website redesign", "website analysis", "AI web designer", "Robinhood Chain", "HOOD TERMINAL"],
   alternates: { canonical: "/" },
-  openGraph: { type: "website", siteName: "HOOD TERMINAL", title: "HOOD TERMINAL — $HOOD on Robinhood Chain", description: DESC, url: "/", images: ["/hood.jpg"] },
-  twitter: { card: "summary_large_image", title: "HOOD TERMINAL", description: DESC, images: ["/hood.jpg"] },
+  icons: { icon: [{ url: "/hood.svg", type: "image/svg+xml" }] },
+  openGraph: { type: "website", siteName: "HOOD TERMINAL", title: TITLE, description: DESC, url: "/", images: [{ url: "/og.png", width: 1200, height: 630 }] },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESC, images: ["/og.png"] },
 };
 export const viewport: Viewport = { themeColor: "#050806" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} ${jet.variable} ${plex.variable}`}>
+    <html lang="en" className={`${jet.variable} ${plex.variable}`}>
       <body>
         <Providers>{children}</Providers>
       </body>

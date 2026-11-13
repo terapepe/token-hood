@@ -7,16 +7,13 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Menu, X } from "lucide-react";
 
 const SECTIONS = [
-  { href: "/#command", label: "Command" },
-  { href: "/#intel", label: "Intel" },
+  { href: "/#pipeline", label: "How it works" },
+  { href: "/#terminal", label: "Terminal" },
+  { href: "/#access", label: "Access" },
+  { href: "/#token", label: "$HOOD" },
   { href: "/#monitor", label: "Monitor" },
-  { href: "/#network", label: "Network" },
-  { href: "/#community", label: "Community" },
 ];
-const PAGES = [
-  { href: "/feed", label: "Feed" },
-  { href: "/builder", label: "Build a site" },
-];
+const PAGES: { href: string; label: string }[] = [];
 
 export function Header() {
   const path = usePathname();
@@ -33,8 +30,7 @@ export function Header() {
         </Link>
         <nav aria-label="Main" className="hidden items-center lg:flex">
           {SECTIONS.map((n) => <a key={n.href} href={n.href} className={item(false)}>{n.label}</a>)}
-          <span className="mx-2 h-4 w-px bg-curb" />
-          {PAGES.map((n) => (
+                    {PAGES.map((n) => (
             <Link key={n.href} href={n.href} aria-current={path === n.href ? "page" : undefined} className={item(path === n.href)}>{n.label}</Link>
           ))}
         </nav>
@@ -58,8 +54,8 @@ export function Header() {
   );
 }
 
-/** Tokenhood / HOOD logo. */
+/** HOOD logo. */
 export const Mark = ({ size = 28 }: { size?: number }) => (
   // eslint-disable-next-line @next/next/no-img-element
-  <img src="/logo.png" alt="" aria-hidden width={size} height={size} className="rounded-full ring-1 ring-spray/60" />
+  <img src="/hood.svg" alt="" aria-hidden width={size} height={size} className="rounded-md" />
 );
