@@ -11,7 +11,9 @@ export const HOOD_INFO = {
   /** Platform that deployed the token. url is optional (leave "" to show plain text). */
   deployer: { name: "Ponsfamily", url: "https://ponsfamily.com/launchpad/0x98184105c254948060132d2a7b39be94d36c77be" },
   x: { handle: "@token_HOOD", url: "https://x.com/@token_HOOD" },
+  /** Optional community links. Leave "" to hide. */
   telegram: "",
+  discord: "",
 };
 
 export const isHoodLive = /^0x[0-9a-fA-F]{40}$/.test(HOOD_INFO.contractAddress);

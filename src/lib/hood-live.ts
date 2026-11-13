@@ -12,6 +12,7 @@ export type HoodInfo = {
   deployer: { name: string; url: string };
   x: { handle: string; url: string };
   telegram: string;
+  discord: string;
   /** Path of the $HOOD page when it exists, e.g. "/hood". */
   pagePath: string | null;
   isLive: boolean;

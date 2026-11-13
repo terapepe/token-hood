@@ -1,27 +1,32 @@
 import type { Config } from "tailwindcss";
 import containerQueries from "@tailwindcss/container-queries";
 
+/** HOOD TERMINAL palette. Token sites (SitePreview) use their own inline palettes, not these. */
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        asphalt: "#000000", // page background
-        concrete: "#0E0E10", // cards
-        curb: "#222226", // borders
-        chalk: "#F4F4F2", // text
-        smoke: "#8B8B90", // secondary text
-        spray: "#FF3EA5", // primary accent (spray-paint magenta)
-        tag: "#3DE3FF", // secondary accent (tag cyan)
-        caution: "#FFD21F", // warnings / prices
+        asphalt: "#050806", // page background (near-black)
+        concrete: "#08100B", // panels
+        forest: "#14251B", // secondary surface / grid
+        curb: "#1C3325", // borders
+        chalk: "#D9FBE4", // primary text
+        smoke: "#6E8F7A", // secondary text
+        spray: "#39FF75", // neon green accent
+        tag: "#39FF75",
+        caution: "#FFC23D", // warnings / demo labels
+        alert: "#FF4D5E", // sells / errors
       },
       fontFamily: {
         display: ["var(--font-display)", "Impact", "sans-serif"],
         sans: ["var(--font-body)", "system-ui", "sans-serif"],
+        mono: ["var(--font-jetbrains)", "var(--font-plex)", "ui-monospace", "monospace"],
       },
       boxShadow: {
-        block: "4px 4px 0 0 #FF3EA5",
-        blockTag: "4px 4px 0 0 #3DE3FF",
+        block: "0 0 0 1px #39FF75, 0 0 18px -4px rgba(57,255,117,.55)",
+        blockTag: "0 0 0 1px #39FF75, 0 0 18px -4px rgba(57,255,117,.55)",
+        glow: "0 0 24px -6px rgba(57,255,117,.6)",
       },
     },
   },
