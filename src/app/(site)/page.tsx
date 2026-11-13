@@ -7,7 +7,7 @@ import { MatrixRain } from "@/components/terminal/MatrixRain";
 import { BootSequence } from "@/components/terminal/BootSequence";
 import { RevealObserver } from "@/components/terminal/Reveal";
 import { BlockMonitor, DataStream, HeroReadout, TokenIntel } from "@/components/terminal/Dashboard";
-import { HoodTerminal } from "@/components/terminal/HoodTerminal";
+import Link from "next/link";
 import { CopyButton } from "@/components/CopyButton";
 
 export const dynamic = "force-dynamic";
@@ -80,7 +80,7 @@ export default async function Home() {
                 Paste any URL. HOOD dissects its design, UX and SEO, then ships a redesigned website built to your brief — ready to download.
               </p>
               <div className="mt-9 flex flex-wrap gap-3">
-                <a href="#terminal" className="btn-primary px-6 py-3">&gt; Launch terminal</a>
+                <Link href="/terminal" className="btn-primary px-6 py-3">&gt; Launch terminal</Link>
                 {isLive && <a href={buyUrl(ca)} {...ext} className="btn px-6 py-3">Buy ${symbol}</a>}
                 <a href="#pipeline" className="btn px-6 py-3">How it works</a>
               </div>
@@ -110,11 +110,31 @@ export default async function Home() {
           </ol>
         </section>
 
-        {/* 3. TERMINAL */}
+        {/* 3. TERMINAL CTA */}
         <section id="terminal" className="border-y border-curb bg-concrete/40 py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <SectionHead n="03" kicker="HOOD AI TERMINAL" title="Run a redesign" text="Connect a wallet that holds $HOOD, verify with a free signature, then point HOOD at any public website." />
-            <div className="reveal"><HoodTerminal minHold={HOOD_MIN_HOLD} /></div>
+            <SectionHead n="03" kicker="HOOD AI TERMINAL" title="Run a redesign" text="The terminal runs as its own workspace: projects, versions, split code/preview, report export." />
+            <div className="reveal panel grid overflow-hidden md:grid-cols-[1.2fr_1fr]">
+              <div className="border-b border-curb p-5 text-[12px] leading-7 md:border-b-0 md:border-r">
+                <p className="text-smoke">hood@terminal:~$</p>
+                <p className="text-chalk">&gt; hood scan example.com --brief &quot;darker, premium, stronger CTA&quot;</p>
+                <p className="text-spray">SCAN · structure, copy, palette, fonts, stack</p>
+                <p className="text-spray">ANALYZE · design · ux · content · seo · a11y</p>
+                <p className="text-spray">REDESIGN · streaming single-file HTML</p>
+                <p className="text-spray">BUILD READY · preview · revise · download</p>
+                <p className="cursor text-smoke" />
+              </div>
+              <div className="flex flex-col justify-center gap-4 p-6">
+                <ul className="space-y-2 text-sm text-smoke">
+                  <li><span className="text-spray">▸</span> Saved projects &amp; version history</li>
+                  <li><span className="text-spray">▸</span> Code · preview · split view, 3 device sizes</li>
+                  <li><span className="text-spray">▸</span> Chat-style revisions, stop anytime</li>
+                  <li><span className="text-spray">▸</span> Download .html + analysis report</li>
+                </ul>
+                <Link href="/terminal" className="btn-primary py-3">&gt; Open terminal</Link>
+                <p className="text-[11px] text-smoke">Requires ≥ {HOOD_MIN_HOLD.toLocaleString()} ${symbol} in the connected wallet.</p>
+              </div>
+            </div>
           </div>
         </section>
 

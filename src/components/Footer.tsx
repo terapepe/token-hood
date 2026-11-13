@@ -5,7 +5,7 @@ import { CopyButton } from "./CopyButton";
 import { Mark } from "./Header";
 
 const NAV = [
-  { href: "/#terminal", label: "AI terminal" },
+  { href: "/terminal", label: "AI terminal" },
   { href: "/#access", label: "Access" },
   { href: "/#token", label: "Token intel" },
   { href: "/#monitor", label: "Tx monitor" },

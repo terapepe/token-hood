@@ -8,12 +8,11 @@ import { Menu, X } from "lucide-react";
 
 const SECTIONS = [
   { href: "/#pipeline", label: "How it works" },
-  { href: "/#terminal", label: "Terminal" },
   { href: "/#access", label: "Access" },
   { href: "/#token", label: "$HOOD" },
   { href: "/#monitor", label: "Monitor" },
 ];
-const PAGES: { href: string; label: string }[] = [];
+const PAGES = [{ href: "/terminal", label: "Terminal" }];
 
 export function Header() {
   const path = usePathname();
@@ -30,6 +29,7 @@ export function Header() {
         </Link>
         <nav aria-label="Main" className="hidden items-center lg:flex">
           {SECTIONS.map((n) => <a key={n.href} href={n.href} className={item(false)}>{n.label}</a>)}
+          <span className="mx-2 h-4 w-px bg-curb" />
                     {PAGES.map((n) => (
             <Link key={n.href} href={n.href} aria-current={path === n.href ? "page" : undefined} className={item(path === n.href)}>{n.label}</Link>
           ))}
