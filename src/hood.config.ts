@@ -1,13 +1,13 @@
 
 export const HOOD_CONFIG = {
   project: {
-    name: "HOOD",
-    ticker: "HOOD",
+    name: "HOOD TERMINAL",
+    ticker: "HOOT",
     tagline: "AI web intelligence terminal",
   },
   social: {
-    x: "https://x.com/token_HOOD",
-    xHandle: "@token_HOOD",
+    x: "https://x.com/TokenhoodOnline",
+    xHandle: "@TokenhoodOnline",
     telegram: "",
     discord: "",
   },
