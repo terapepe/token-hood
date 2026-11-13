@@ -14,12 +14,12 @@ export const HOOD_CONFIG = {
 
   deployer: { name: "", url: "" },
   token: {
-    address: "0x9032191d1b570d33bfa95a9ff78f639e105ad801",
+    address: "",
     sol: "",
   },
 
   mode: "single" as "single" | "multi",
-  singleNetwork: "base" as NetworkId,
+  singleNetwork: "robinhood" as NetworkId,
   multiOrder: ["robinhood", "solana", "base", "bsc"] as NetworkId[],
   primaryNetwork: "robinhood" as NetworkId,
 
