@@ -14,7 +14,7 @@ export const HOOD_CONFIG = {
 
   deployer: { name: "", url: "" },
   token: {
-    address: "",
+    address: "0x317b2B5eF9d52fba9edEfBc6A53864174cf20ab4",
     sol: "",
   },
 
